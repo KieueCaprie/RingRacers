@@ -662,8 +662,37 @@ fixed_t K_CalculateGPPercent(gpRank_t *rankData)
 	{
 		rankData->scoreRings += (rankData->rings * RANK_WEIGHT_RINGS) / rankData->totalRings;
 	}
+	
+	// Calculate maximum continue penalty first.
+	
+	// Four continues are free on Relaxed and Intense
+	if (grandprixinfo.gamespeed == KARTSPEED_EASY)
+	{
+		const INT32 freeContinues = RANK_CONTINUE_PENALTY_START;
+		rankData->scoreContinues -= (rankData->continuesUsed - freeContinues) * continuesPenalty;
+	}
+	
+	if (grandprixinfo.gamespeed == KARTSPEED_NORMAL)
+	{
+		const INT32 freeContinues = RANK_CONTINUE_PENALTY_START;
+		rankData->scoreContinues -= (rankData->continuesUsed - freeContinues) * continuesPenalty;
+	}
+	
+	// Two continues are free on Vicious
+	if (grandprixinfo.gamespeed == KARTSPEED_HARD)
+	{
+		const INT32 freeContinues = RANK_CONTINUE_PENALTY_START - 2;
+		rankData->scoreContinues -= (rankData->continuesUsed - freeContinues) * continuesPenalty;
+	}
+	
+	// Playing Master or Level Skull? ...you get one. Don't waste it.
+	if (grandprixinfo.masterbots || cv_levelskull.value)
+	{
+		const INT32 freeContinues = RANK_CONTINUE_PENALTY_START - 3;
+		rankData->scoreContinues -= (rankData->continuesUsed - freeContinues) * continuesPenalty;
+	}
 
-	rankData->scoreContinues -= (rankData->continuesUsed - RANK_CONTINUE_PENALTY_START) * continuesPenalty;
+	// rankData->scoreContinues -= (rankData->continuesUsed - RANK_CONTINUE_PENALTY_START) * continuesPenalty;
 
 	rankData->scoreTotal =
 		rankData->scorePosition +
