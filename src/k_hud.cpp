@@ -3307,18 +3307,12 @@ static void K_drawKartEmeralds(void)
 
 INT32 K_GetTransFlagFromFixed(fixed_t value, boolean midrace)
 {
-	fixed_t base = midrace ? GRADINGFACTORSOFTCAP : FRACUNIT;
+	fixed_t base = FRACUNIT;
 
     value = std::clamp(value, base - FRACUNIT/2, base + FRACUNIT/2);
 
     // Calculate distance from "base""
     fixed_t distance = abs(base - value);
-
-	if (midrace)
-	{
-		if (value > base)
-			distance = FixedMul(distance, GRADINGFACTORCAPSTRENGTH);
-	}
 
 	distance = std::clamp(distance, 0, FRACUNIT/2);
 
@@ -5189,7 +5183,7 @@ static void K_drawKartPlayerCheck(void)
 			continue;
 		}
 
-		if ((checkplayer->invincibilitytimer <= 0) && (leveltime & 2))
+		if ((checkplayer->invincibilitytimer <= 0) && (leveltime & 2) && !(cv_reducevfx.value))
 		{
 			pnum++; // white frames
 		}
@@ -7172,11 +7166,13 @@ static void K_drawLapStartAnim(void)
 			oldval = (188 + (32 * std::max(0, progressOld - 76))) * FRACUNIT;
 			interpx = R_InterpolateFixed(oldval, newval);
 
+			UINT32 sanitizedlaps = std::min((UINT32)99, (UINT32)stplyr->latestlap);
+
 			V_DrawFixedPatch(
 				interpx, // 194
 				30*FRACUNIT, // 24
 				FRACUNIT, V_SNAPTOTOP|hudtransflags,
-				kp_lapanim_number[(((UINT32)stplyr->latestlap) / 10)][std::min(progress/2-8, 2)], NULL);
+				kp_lapanim_number[(sanitizedlaps / 10)][std::min(progress/2-8, 2)], NULL);
 
 			if (progress/2-10 >= 0)
 			{
@@ -7188,7 +7184,7 @@ static void K_drawLapStartAnim(void)
 					interpx, // 221
 					30*FRACUNIT, // 24
 					FRACUNIT, V_SNAPTOTOP|hudtransflags,
-					kp_lapanim_number[(((UINT32)stplyr->latestlap) % 10)][std::min(progress/2-10, 2)], NULL);
+					kp_lapanim_number[(sanitizedlaps % 10)][std::min(progress/2-10, 2)], NULL);
 			}
 		}
 	}
@@ -7311,7 +7307,21 @@ static void K_drawDistributionDebugger(void)
 		return;
 	}
 
-	K_FillItemRouletteData(stplyr, &rouletteData, false, true);
+	{
+		// GROSS GROSS GROSS GROSS copypaste from K_FillItemRoulette
+		// but without the potential for Lua side-effects etc.
+		// This sucks the ass.
+		K_InitRoulette(&rouletteData);
+
+		rouletteData.baseDist = K_UndoMapScaling(stplyr->distancetofinish);
+
+		if (stplyr->pflags & PF_AUTOROULETTE)
+			rouletteData.autoroulette = true;
+
+		K_CalculateRouletteSpeed(&rouletteData);
+
+		K_FillItemRouletteData(stplyr, &rouletteData, false, true);
+	}
 
 	if (cv_kartdebugdistribution.value <= 1)
 		return;
@@ -7772,7 +7782,7 @@ void K_drawKartHUD(void)
 		return;
 	}
 
-	if (staffsync)
+	if (staffsync && staffsync_total)
 	{
 		V_DrawFadeScreen(31, 8);
 		V_DrawCenteredGamemodeString(BASEVIDWIDTH/2, BASEVIDHEIGHT/2 - 30, 0, 0, "Staff Ghost Sync Test");

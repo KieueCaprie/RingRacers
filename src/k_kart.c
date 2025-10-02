@@ -158,9 +158,8 @@ fixed_t K_EffectiveGradingFactor(const player_t *player)
 		return min;
 
 	fixed_t gf = player->gradingfactor;
-
-	if (gf > GRADINGFACTORSOFTCAP && !K_PlayerUsesBotMovement(player))
-		gf = GRADINGFACTORSOFTCAP + FixedDiv(gf - GRADINGFACTORSOFTCAP, GRADINGFACTORCAPSTRENGTH);
+	if (franticitems)
+		gf = (gf + FRACUNIT)/2;
 
 	return max(min, gf);
 }
@@ -508,7 +507,7 @@ boolean K_IsPlayerLosing(player_t *player)
 }
 
 // Some behavior should change if the player approaches the frontrunner unusually fast.
-fixed_t K_PlayerScamPercentage(const player_t *player, UINT8 mult)
+fixed_t K_PlayerScamPercentage(const player_t *player, fixed_t mult)
 {
 	if (!M_NotFreePlay())
 		return 0;
@@ -523,7 +522,7 @@ fixed_t K_PlayerScamPercentage(const player_t *player, UINT8 mult)
 	// "Why 2000?" Vibes
 
 	UINT32 distance = K_GetItemRouletteDistance(player, 8);
-	UINT32 scamdistance = mult * SCAMDIST;
+	UINT32 scamdistance = FixedMul(mult, SCAMDIST*FRACUNIT)/FRACUNIT;
 
 	if (distance >= scamdistance)
 		return 0;
@@ -3172,26 +3171,70 @@ boolean K_SlopeResistance(const player_t *player)
 
 fixed_t K_PlayerTripwireSpeedThreshold(const player_t *player)
 {
-	fixed_t required_speed = 2 * K_GetKartSpeed(player, false, false); // 200%
+	fixed_t base_speed = K_GetKartSpeed(player, false, false);
+	fixed_t required_speed = 9 * base_speed / 4; // 225%
+
+	// 200% in Easy / Tutorial
+	if (gamespeed == KARTSPEED_EASY)
+		required_speed = 2 * base_speed;
 
 	if (K_LegacyRingboost(player))
-		return required_speed;
+		return 2 * base_speed;
 
+	// 150% in special
 	if (specialstageinfo.valid)
-		required_speed = 3 * K_GetKartSpeed(player, false, false) / 2; // 150%
+		required_speed = 3 * base_speed / 2;
 
+	// 400% in Time Attack
 	if (modeattacking && !(gametyperules & GTR_CATCHER))
-		required_speed = 4 * K_GetKartSpeed(player, false, false);
+		required_speed = 4 * base_speed;
 
+	// Race
 	if ((gametyperules & GTR_CIRCUIT) && !K_Cooperative() && M_NotFreePlay() && !modeattacking)
 	{
-		required_speed += FixedMul(required_speed, K_PlayerScamPercentage(player, 2)); // Proration: Players near 1st need more speed!
-	}
+		/*
+		All of this will be for making Sonic Boom easier when you're drowning in the back, like a "reverse" proration
+		*/
 
-	if (player->offroad && K_ApplyOffroad(player))
-	{
-		// Increase to 300% if you're lawnmowering.
-		required_speed = (required_speed * 3) / 2;
+		#define REVERSED_SONICBOOM_PRORATION (30000)
+		#define MAX_SONICBOOM_REDUCTION (8*FRACUNIT/10)
+
+		UINT32 dist = K_GetItemRouletteDistance(player, D_NumPlayersInRace());
+
+		if (dist > REVERSED_SONICBOOM_PRORATION)
+		{
+			dist = REVERSED_SONICBOOM_PRORATION;
+		}
+
+		fixed_t distfactor = FixedDiv(dist, REVERSED_SONICBOOM_PRORATION); //
+		fixed_t sonicboom_aid = Easing_InCubic(distfactor, FRACUNIT, MAX_SONICBOOM_REDUCTION);
+
+		required_speed = FixedMul(sonicboom_aid, required_speed);
+
+		/*
+		And then all of this will be for making it harder when you're in scam range, actual proration
+		*/
+
+		fixed_t scamcheck_in_2p = 3*FRACUNIT/2; // Lower values = need to be closer to be scamming
+		fixed_t scamcheck_in_16p = 5*FRACUNIT/2; // Higher values = tripwire threshold goes up when further away
+		fixed_t scamscaler = FixedRescale(D_NumPlayersInRace(), 2, 16, Easing_Linear, scamcheck_in_2p, scamcheck_in_16p);
+		required_speed += FixedMul(required_speed, K_PlayerScamPercentage(player, scamscaler));
+
+		if (player->position == 1)
+		{
+			required_speed = 9 * K_GetKartSpeed(player, false, false); // Seek employment
+		}
+
+	#if 0
+		if (!K_PlayerUsesBotMovement(player)) // Sonic Boom debug
+		{
+		//CONS_Printf("Sonic Boom threshold: %d percent, IN FRACUNIT: %d \n", ((required_speed *100) / K_GetKartSpeed(player, false, false)), required_speed);
+		CONS_Printf("D=%d DF=%d SBA=%d SCAM=%d RRS=%d\n", dist, distfactor, sonicboom_aid, K_PlayerScamPercentage(player, scamscaler), required_speed * 100 / base_speed);
+		}
+	#endif
+
+		#undef REVERSED_SONICBOOM_PRORATION
+		#undef MAX_SONICBOOM_REDUCTION
 	}
 
 	if (player->botvars.rubberband > FRACUNIT && K_PlayerUsesBotMovement(player) == true)
@@ -3670,7 +3713,7 @@ static void K_GetKartBoostPower(player_t *player)
 		boostpower = (4*boostpower)/5;
 
 	if (player->stonedrag)
-		boostpower = (4*boostpower)/5;
+		boostpower = (70*boostpower)/100;
 
 	// Note: Handling will ONLY stack when sliptiding!
 	// > (NB 2023-03-06: This was previously unintentionally applied while drifting as well.)
@@ -4498,6 +4541,15 @@ void K_SpawnEXP(player_t *player, UINT8 exp, mobj_t *impact)
 	if (exp == 0)
 		return;
 
+	boolean special = false;
+
+	if (player->gradingpointnum == K_GetNumGradingPoints())
+	{
+		exp *= 3;
+		special = true;
+	}
+
+
 	for (int i = 0; i < exp; i++)
 	{
 		mobj_t *pickup = P_SpawnMobj(impact->x, impact->y, impact->z, MT_EXP);
@@ -4508,6 +4560,14 @@ void K_SpawnEXP(player_t *player, UINT8 exp, mobj_t *impact)
 		pickup->momy += P_RandomRange(PR_ITEM_DEBRIS, -20*mapobjectscale, 20*mapobjectscale);
 		pickup->momz += P_RandomRange(PR_ITEM_DEBRIS, -20*mapobjectscale, 20*mapobjectscale);
 		// pickup->color = player->skincolor;
+
+		if (special)
+		{
+			P_InstaScale(pickup, 3*pickup->scale/2);
+			pickup->color = SKINCOLOR_SAPPHIRE;
+			pickup->colorized = true;
+		}
+
 		P_SetTarget(&pickup->target, player->mo);
 	}
 }
@@ -4717,7 +4777,7 @@ void K_CheckpointCrossAward(player_t *player)
 		K_HandleRaceSplits(player, leveltime - starttime, player->gradingpointnum);
 	}
 
-	player->gradingfactor += K_GetGradingFactorAdjustment(player);
+	player->gradingfactor += K_GetGradingFactorAdjustment(player, player->gradingpointnum);
 	player->gradingpointnum++;
 	player->exp = K_GetEXP(player);
 	//CONS_Printf("player: %s factor: %.2f exp: %d\n", player_names[player-players], FIXED_TO_FLOAT(player->gradingfactor), player->exp);
@@ -4908,8 +4968,10 @@ void K_DoInstashield(player_t *player)
 
 void K_DoPowerClash(mobj_t *t1, mobj_t *t2) {
 	mobj_t *clash;
-	UINT8 lag1 = 5;
-	UINT8 lag2 = 5;
+	UINT8 lag1 = 10; // Base value used for kartitem-to-player collision.
+	UINT8 lag2 = 10; // We want to preserve shooting invinc players to hinder them!
+	boolean slow1 = false; // If we _are_ hitting a kartitem, keep that value.
+	boolean slow2 = false; // Otherwise, route to K_AddHitLagFromCollision.
 
 	boolean stripbubble = (gametyperules & GTR_BUMPERS);
 
@@ -4917,24 +4979,32 @@ void K_DoPowerClash(mobj_t *t1, mobj_t *t2) {
 	if (t1->player)
 	{
 		t1->player->instashield = 1;
-		t1->player->speedpunt += 20;
-		lag1 -= min(lag1, t1->player->speedpunt/10);
 		if (stripbubble && t1->player->curshield == KSHIELD_BUBBLE)
 			K_PopBubbleShield(t1->player);
+		if (P_IsKartFieldItem(t2->type))
+			slow1 = true;
 	}
 
 	if (t2->player)
 	{
 		t2->player->instashield = 1;
-		t2->player->speedpunt += 20;
-		lag2 -= min(lag1, t2->player->speedpunt/10);
 		if (stripbubble && t2->player->curshield == KSHIELD_BUBBLE)
 			K_PopBubbleShield(t2->player);
+		if (P_IsKartFieldItem(t1->type))
+			slow2 = true;
 	}
 
 	S_StartSound(t1, sfx_parry);
-	K_AddHitLag(t1, lag1+1, false);
-	K_AddHitLag(t2, lag2+1, false);
+
+	if (slow1)
+		K_AddHitLag(t1, lag1, false);
+	else
+		K_AddHitLagFromCollision(t1, lag1);
+
+	if (slow2)
+		K_AddHitLag(t2, lag2, false);
+	else
+		K_AddHitLagFromCollision(t2, lag2);
 
 	clash = P_SpawnMobj((t1->x/2) + (t2->x/2), (t1->y/2) + (t2->y/2), (t1->z/2) + (t2->z/2), MT_POWERCLASH);
 
@@ -5848,7 +5918,7 @@ void K_ApplyTripWire(player_t *player, tripwirestate_t state)
 
 	if (player->hyudorotimer <= 0)
 	{
-		K_AddHitLag(player->mo, 10, false);
+		K_AddHitLag(player->mo, (state == TRIPSTATE_PASSED) ? 2 : 10, false);
 		player->mo->hitlag -= min(player->mo->hitlag, player->tripwireUnstuck/4);
 	}
 
@@ -9672,7 +9742,7 @@ static void K_UpdateTripwire(player_t *player)
 	tripwirepass_t triplevel = K_TripwirePassConditions(player);
 	boolean mightplaysound = false;
 
-	if (triplevel != TRIPWIRE_NONE)
+	if (triplevel != TRIPWIRE_NONE) // Sonic Boom, able to pass tripwire
 	{
 		if (!boostExists)
 		{
@@ -9767,7 +9837,7 @@ boolean K_PressingEBrake(const player_t *player)
 void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 {
 	const boolean onground = P_IsObjectOnGround(player->mo);
-	const fixed_t scamming = K_PlayerScamPercentage(player, 1);
+	const fixed_t scamming = K_PlayerScamPercentage(player, FRACUNIT);
 
 	/* reset sprite offsets :) */
 	player->mo->sprxoff = 0;
@@ -9878,7 +9948,7 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 			{
 				mobj_t *ghost;
 				ghost = P_SpawnGhostMobj(player->mo);
-				ghost->extravalue1 = player->numboosts+1;
+				ghost->extravalue1 = player->numboosts;
 				ghost->extravalue2 = (leveltime % ghost->extravalue1);
 				ghost->fuse = ghost->extravalue1;
 				ghost->renderflags |= RF_FULLBRIGHT;
@@ -9915,7 +9985,7 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 
 		// Race: spawn ring debt indicator
 		// Battle: spawn zero-bumpers indicator
-		if (!(player->pflags2 & PF2_UNSTINGABLE) && ((gametyperules & GTR_SPHERES) ? player->mo->health <= 1 : RINGTOTAL(player) <= 0))
+		if (!(player->pflags2 & PF2_UNSTINGABLE) && player->ringboostinprogress == 0 && ((gametyperules & GTR_SPHERES) ? player->mo->health <= 1 : RINGTOTAL(player) <= 0))
 		{
 			UINT8 doubler;
 
@@ -10446,7 +10516,7 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 		player->tricklock = 0;
 	}
 
-	if (P_PlayerInPain(player) || player->respawn.state != RESPAWNST_NONE)
+	if ((P_PlayerInPain(player) && G_CompatLevel(0x0010)) || player->respawn.state != RESPAWNST_NONE)
 	{
 		player->ringboost = 0;
 	}
@@ -10472,6 +10542,11 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 			player->ringboost -= min(K_GetFullKartRingPower(player, false) - 1, max(player->ringboost / 2 / roller, 1));
 
 		// CONS_Printf("%d - %d\n", player->ringboost, oldringboost - player->ringboost);
+	}
+
+	if (!G_CompatLevel(0x0010) && player->superring == 0 && player->ringboxdelay == 0 && player->ringboost < player->lastringboost)
+	{
+		player->lastringboost = player->ringboost;
 	}
 
 	if (player->sneakertimer)
@@ -10507,10 +10582,6 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 	if (player->trickboost)
 		player->trickboost--;
 
-	/*
-	if (K_PlayerUsesBotMovement(player) && player->botvars.bumpslow && player->incontrol)
-		player->botvars.bumpslow--;
-	*/
 
 	// WHOOPS! 2.4 bots were tuned around a bugged version of bumpslow that NEVER decayed
 	// if the player in slot 0 was a human. People seem to like this tuning, but the dampened
@@ -10520,8 +10591,17 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 	// I'd like to retune this later, but for now, just set bumpslow on every bot, as if they all
 	// contact a wall instantly—consistently giving them the softer rubberband advancement.
 	// What the fuck making games is hard.
-	if (K_PlayerUsesBotMovement(player))
-		player->botvars.bumpslow = TICRATE*2;
+	if (G_CompatLevel(0x0010))
+	{
+		// Backwards compatibility for bot takeover in staff ghosts.
+		if (K_PlayerUsesBotMovement(player) && player->botvars.bumpslow && player->incontrol)
+			player->botvars.bumpslow--;
+	}
+	else
+	{
+		if (K_PlayerUsesBotMovement(player))
+			player->botvars.bumpslow = TICRATE*2;
+	}
 
 
 	if (player->flamedash)
@@ -10639,13 +10719,6 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 		player->wavedashpower = FRACUNIT; // Safety
 	}
 
-	if (player->speedpunt)
-		player->speedpunt--;
-
-	// This timer can get out of control fast, clamp to match player expectations about "new" hazards
-	if (player->speedpunt > TICRATE*4)
-		player->speedpunt = TICRATE*4;
-
 	if (player->trickcharge > 0 && onground == true)
 	{
 		player->trickcharge--;
@@ -10684,6 +10757,9 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 			player->tripwireLeniency = max( player->tripwireLeniency, TICRATE );
 		}
 	}
+
+	if (player->ringboostinprogress)
+		player->ringboostinprogress--;
 
 	if (player->baildrop)
 	{
@@ -10791,6 +10867,7 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 
 		player->itemamount = 0;
 		player->itemtype = 0;
+		player->rocketsneakertimer = 0;
 
 		/*
 		if (player->itemamount)
@@ -10814,7 +10891,7 @@ void K_KartPlayerThink(player_t *player, ticcmd_t *cmd)
 		}
 
 		INT32 fls = K_GetEffectiveFollowerSkin(player);
-		if (player->follower && fls >= 0 && fls < numfollowers)
+		if (player->follower && fls >= 0 && fls < numfollowers && cv_karthorns.value)
 		{
 			const follower_t *fl = &followers[fls];
 			S_StartSound(player->follower, fl->hornsound);
@@ -13565,7 +13642,7 @@ static INT32 K_FlameShieldMax(player_t *player)
 
 	disttofinish = K_GetItemRouletteDistance(player, 8);
 
-	if (D_NumPlayersInRace() <= 1)
+	if (D_NumPlayersInRace() <= 1 || (gametyperules & GTR_CATCHER) || (gametype == GT_TUTORIAL))
 	{
 		return FLAMESHIELD_MAX; // max when alone, for testing
 		// and when in battle, for chaos
@@ -14049,12 +14126,19 @@ static void K_KartSpindash(player_t *player)
 		}
 		else if (!G_CompatLevel(0x0010))
 		{
-			boolean ebrakelasttic = ((player->oldcmd.buttons & BT_EBRAKEMASK) == BT_EBRAKEMASK);
-			if (player->pflags2 & PF2_STRICTFASTFALL)
-				ebrakelasttic = (player->oldcmd.buttons & BT_SPINDASH);
+			UINT16 oldbuttons = player->oldcmd.buttons;
+			UINT16 nowbuttons = K_GetKartButtons(player);
+
+			if (K_KartKickstart(player))
+				oldbuttons |= BT_ACCELERATE; // Not strictly correct, but better than nothing.
+			// Kickstart needs substantial attention if we want this sort of thing to be clean.
+
+			boolean ebrakelasttic = ((oldbuttons & BT_EBRAKEMASK) == BT_EBRAKEMASK);
+			if (player->pflags2 & PF2_STRICTFASTFALL && !(oldbuttons & BT_SPINDASH))
+				ebrakelasttic = false;
 
 			boolean ebrakenow = K_PressingEBrake(player);
-			if (player->pflags2 & PF2_STRICTFASTFALL && !(player->cmd.buttons & BT_SPINDASH))
+			if (player->pflags2 & PF2_STRICTFASTFALL && !(nowbuttons & BT_SPINDASH))
 				ebrakenow = false;
 
 			if (!ebrakelasttic && ebrakenow && player->fastfall && player->transfer)
@@ -14844,7 +14928,7 @@ void K_MoveKartPlayer(player_t *player, boolean onground)
 	if (player->cmd.buttons & BT_BAIL && (player->cmd.buttons & BT_RESPAWNMASK) != BT_RESPAWNMASK)
 	{
 		if (leveltime < introtime || (gametyperules & GTR_SPHERES) || modeattacking || player->markedfordeath
-			|| player->respawn.state != RESPAWNST_NONE)
+			|| player->respawn.state != RESPAWNST_NONE || player->baildrop)
 		{
 			// No bailing in GTR_SPHERES because I cannot be fucked to do manual Last Chance right now.
 			// Maybe someday!
@@ -14971,6 +15055,7 @@ void K_MoveKartPlayer(player_t *player, boolean onground)
 					{
 						P_SetOrigin(ring, ring->x, ring->y, ring->z);
 						ring->extravalue1 = 1;
+						player->ringboostinprogress = 25;
 					}
 
 
@@ -15498,7 +15583,7 @@ void K_MoveKartPlayer(player_t *player, boolean onground)
 								}
 
 								player->growshrinktimer = max(0, player->growshrinktimer);
-								player->growshrinktimer += ((gametyperules & GTR_CLOSERPLAYERS) ? 8 : 12) * TICRATE;
+								player->growshrinktimer = max(player->growshrinktimer + 5*TICRATE, ((gametyperules & GTR_CLOSERPLAYERS) ? 8 : 12) * TICRATE);
 
 								S_StartSound(player->mo, sfx_kc5a);
 
@@ -17028,6 +17113,16 @@ boolean K_PlayerCanPunt(player_t *player)
 		return true;
 	}
 
+	if (player->overshield > 0)
+	{
+		return true;
+	}
+
+	if (player->lightningcharge > 0)
+	{
+		return true;
+	}
+
 	if (player->tripwirePass >= TRIPWIRE_BLASTER && player->speed >= K_PlayerTripwireSpeedThreshold(player))
 	{
 		return true;
@@ -17083,7 +17178,19 @@ static UINT8 K_Opponents(player_t *player)
 	return opponents;
 }
 
-static fixed_t K_GradingFactorPower(player_t *player)
+fixed_t K_FinalCheckpointPower(void)
+{
+	// How much of the final total is given out as a bonus for the last check?
+	fixed_t FINAL_CHECK_PERCENT = 25*FRACUNIT/100;
+
+	fixed_t theentirerace = K_GetNumGradingPoints()*FRACUNIT;
+	fixed_t theentireraceplusbonus = FixedDiv(theentirerace, FRACUNIT - FINAL_CHECK_PERCENT);
+	fixed_t bonusonly = theentireraceplusbonus - theentirerace;
+
+	return bonusonly;
+}
+
+static fixed_t K_GradingFactorPower(player_t *player, UINT32 gradingpoint)
 {
 	fixed_t power = EXP_POWER; // adjust to change overall exp volatility
 	UINT8 opponents = K_Opponents(player);
@@ -17097,23 +17204,30 @@ static fixed_t K_GradingFactorPower(player_t *player)
 	if (opponents > 8)
 		power -= (opponents - 8) * (power/24);
 
+	UINT32 gp = K_GetNumGradingPoints();
+
+	if (gradingpoint-1 == gp)
+	{
+		power += FixedMul(power, K_FinalCheckpointPower());
+	}
+
 	return power;
 }
 
-static fixed_t K_GradingFactorGainPerWin(player_t *player)
+static fixed_t K_GradingFactorGainPerWin(player_t *player, UINT32 gradingpoint)
 {
-	return K_GradingFactorPower(player);
+	return K_GradingFactorPower(player, gradingpoint);
 }
 
-static fixed_t K_GradingFactorDrainPerCheckpoint(player_t *player)
+static fixed_t K_GradingFactorDrainPerCheckpoint(player_t *player, UINT32 gradingpoint)
 {
 	// EXP_STABLERATE: How low do you have to place before losing gradingfactor? 4*FRACUNIT/10 = top 40% of race gains, 60% loses.
 	UINT8 opponents = K_Opponents(player);
-	fixed_t power = K_GradingFactorPower(player);
+	fixed_t power = K_GradingFactorPower(player, gradingpoint);
 	return FixedMul(power, FixedMul(opponents*FRACUNIT, FRACUNIT - EXP_STABLERATE));
 }
 
-fixed_t K_GetGradingFactorAdjustment(player_t *player)
+fixed_t K_GetGradingFactorAdjustment(player_t *player, UINT32 gradingpoint)
 {
 	fixed_t result = 0;
 
@@ -17124,13 +17238,13 @@ fixed_t K_GetGradingFactorAdjustment(player_t *player)
 			continue;
 
 		if (player->position < players[i].position)
-			result += K_GradingFactorGainPerWin(player);
+			result += K_GradingFactorGainPerWin(player, gradingpoint);
 	}
 
 	// ...then take all of the gradingfactor you could possibly have earned,
 	// and lose it proportional to the stable rate. If you're below
 	// the stable threshold, this results in you losing gradingfactor
-	result -= K_GradingFactorDrainPerCheckpoint(player);
+	result -= K_GradingFactorDrainPerCheckpoint(player, gradingpoint);
 
 	return result;
 }
@@ -17144,8 +17258,8 @@ fixed_t K_GetGradingFactorMinMax(player_t *player, boolean max)
 	for (UINT8 i = 0; i < player->gradingpointnum; i++) // For each gradingpoint you've reached...
 	{
 		for (UINT8 j = 0; j < winning; j++)
-			factor += K_GradingFactorGainPerWin(player); // If max, increase gradingfactor for each player you could have been beating.
-		factor -= K_GradingFactorDrainPerCheckpoint(player); // Then, drain like usual.
+			factor += K_GradingFactorGainPerWin(player, i); // If max, increase gradingfactor for each player you could have been beating.
+		factor -= K_GradingFactorDrainPerCheckpoint(player, i); // Then, drain like usual.
 	}
 
 	return factor;
@@ -17153,19 +17267,33 @@ fixed_t K_GetGradingFactorMinMax(player_t *player, boolean max)
 
 UINT16 K_GetEXP(player_t *player)
 {
+	fixed_t gradingpointnum = FRACUNIT * player->gradingpointnum;
+
 	UINT32 numgradingpoints = K_GetNumGradingPoints();
-	fixed_t targetminexp = (EXP_MIN*player->gradingpointnum<<FRACBITS) / max(1,numgradingpoints); // about what a last place player should be at this stage of the race
-	fixed_t targetmaxexp = (EXP_MAX*player->gradingpointnum<<FRACBITS) / max(1,numgradingpoints); // about what a 1.0 factor should be at this stage of the race
+	fixed_t fixedgradingpoints = numgradingpoints * FRACUNIT;
+	fixed_t effgradingpoints = fixedgradingpoints + K_FinalCheckpointPower();
+
+	// Account for Final Check bonus
+	if (player->gradingpointnum == numgradingpoints)
+		gradingpointnum = effgradingpoints;
+
+	// fixed_t targetminexp = (EXP_MIN*gpn<<FRACBITS) / max(1,effgradingpoints); // about what a last place player should be at this stage of the race
+	// fixed_t targetmaxexp = (EXP_MAX*gpn<<FRACBITS) / max(1,effgradingpoints); // about what a 1.0 factor should be at this stage of the race
+	fixed_t targetminexp = FixedDiv(EXP_MIN * gradingpointnum, max(FRACUNIT, effgradingpoints));
+	fixed_t targetmaxexp = FixedDiv(EXP_MAX * gradingpointnum, max(FRACUNIT, effgradingpoints));
 	fixed_t factormin = K_GetGradingFactorMinMax(player, false);
 	fixed_t factormax = K_GetGradingFactorMinMax(player, true);
 
 	UINT16 exp = FixedRescale(player->gradingfactor, factormin, factormax, Easing_Linear, targetminexp, targetmaxexp)>>FRACBITS;
 
 	if (modeattacking)
-		exp = 100 * player->gradingpointnum / numgradingpoints;
+		exp = EXP_MAX * player->gradingpointnum / max(1, numgradingpoints); // No Final Check here, just a linear slide
 
-	// CONS_Printf("Player %s numgradingpoints=%d gradingpoint=%d targetminexp=%d targetmaxexp=%d factor=%.2f factormin=%.2f factormax=%.2f exp=%d\n",
-	// 	player_names[player - players], numgradingpoints, player->gradingpointnum, targetminexp, targetmaxexp, FIXED_TO_FLOAT(player->gradingfactor), FIXED_TO_FLOAT(factormin), FIXED_TO_FLOAT(factormax), exp);
+	/*
+	if (!player->bot)
+		CONS_Printf("Player %s fcp=%d effgradingpoints=%d gradingpoint=%d targetminexp=%d targetmaxexp=%d factor=%.2f factormin=%.2f factormax=%.2f exp=%d\n",
+	 		player_names[player - players], K_FinalCheckpointPower(), effgradingpoints, gradingpointnum, targetminexp, targetmaxexp, FIXED_TO_FLOAT(player->gradingfactor), FIXED_TO_FLOAT(factormin), FIXED_TO_FLOAT(factormax), exp);
+	*/
 
 	return exp;
 }
@@ -17414,7 +17542,7 @@ fixed_t K_TeamComebackMultiplier(player_t *player)
 void K_ApplyStun(player_t *player, mobj_t *inflictor, mobj_t *source, ATTRUNUSED INT32 damage, ATTRUNUSED UINT8 damagetype)
 {
 	#define BASE_STUN_TICS_MIN (4 * TICRATE)
-	#define BASE_STUN_TICS_MAX (10 * TICRATE)
+	#define BASE_STUN_TICS_MAX (8 * TICRATE)
 	#define MAX_STUN_REDUCTION (FRACUNIT/2)
 	#define STUN_REDUCTION_DISTANCE (20000)
 	INT32 stunTics = 0;

@@ -512,6 +512,7 @@ static void P_NetArchivePlayers(savebuffer_t *save)
 		WRITEUINT16(save->p, players[i].spindash);
 		WRITEFIXED(save->p, players[i].spindashspeed);
 		WRITEUINT8(save->p, players[i].spindashboost);
+		WRITEUINT8(save->p, players[i].ringboostinprogress);
 
 		WRITEFIXED(save->p, players[i].fastfall);
 		WRITEFIXED(save->p, players[i].fastfallBase);
@@ -533,6 +534,7 @@ static void P_NetArchivePlayers(savebuffer_t *save)
 		WRITEUINT16(save->p, players[i].tripwireLeniency);
 		WRITEUINT8(save->p, players[i].tripwireAirLeniency);
 		WRITEUINT8(save->p, players[i].fakeBoost);
+		WRITEUINT16(save->p, players[i].subsonicleniency);
 
 		WRITESINT8(save->p, players[i].itemtype);
 		WRITEUINT8(save->p, players[i].itemamount);
@@ -653,7 +655,6 @@ static void P_NetArchivePlayers(savebuffer_t *save)
 		WRITEFIXED(save->p, players[i].overdrivepower);
 		WRITEUINT8(save->p, players[i].overdriveready);
 		WRITEUINT8(save->p, players[i].overdrivelenient);
-		WRITEUINT16(save->p, players[i].speedpunt);
 		WRITEUINT16(save->p, players[i].trickcharge);
 
 		WRITEUINT16(save->p, players[i].infinitether);
@@ -700,6 +701,7 @@ static void P_NetArchivePlayers(savebuffer_t *save)
 		WRITEUINT8(save->p, players[i].analoginput);
 
 		WRITEUINT8(save->p, players[i].markedfordeath);
+		WRITEUINT8(save->p, players[i].mfdfinish);
 		WRITEUINT8(save->p, players[i].dotrickfx);
 		WRITEUINT8(save->p, players[i].stingfx);
 		WRITEUINT8(save->p, players[i].bumperinflate);
@@ -1191,6 +1193,7 @@ static void P_NetUnArchivePlayers(savebuffer_t *save)
 		players[i].spindash = READUINT16(save->p);
 		players[i].spindashspeed = READFIXED(save->p);
 		players[i].spindashboost = READUINT8(save->p);
+		players[i].ringboostinprogress = READUINT8(save->p);
 
 		players[i].fastfall = READFIXED(save->p);
 		players[i].fastfallBase = READFIXED(save->p);
@@ -1212,6 +1215,7 @@ static void P_NetUnArchivePlayers(savebuffer_t *save)
 		players[i].tripwireLeniency = READUINT16(save->p);
 		players[i].tripwireAirLeniency = READUINT8(save->p);
 		players[i].fakeBoost = READUINT8(save->p);
+		players[i].subsonicleniency = READUINT16(save->p);
 
 		players[i].itemtype = READSINT8(save->p);
 		players[i].itemamount = READUINT8(save->p);
@@ -1331,7 +1335,6 @@ static void P_NetUnArchivePlayers(savebuffer_t *save)
 		players[i].overdrivepower = READFIXED(save->p);
 		players[i].overdriveready = READUINT8(save->p);
 		players[i].overdrivelenient = READUINT8(save->p);
-		players[i].speedpunt = READUINT16(save->p);
 		players[i].trickcharge = READUINT16(save->p);
 
 		players[i].infinitether = READUINT16(save->p);
@@ -1377,6 +1380,7 @@ static void P_NetUnArchivePlayers(savebuffer_t *save)
 		players[i].analoginput = READUINT8(save->p);
 
 		players[i].markedfordeath = READUINT8(save->p);
+		players[i].mfdfinish = READUINT8(save->p);
 		players[i].dotrickfx = READUINT8(save->p);
 		players[i].stingfx = READUINT8(save->p);
 		players[i].bumperinflate = READUINT8(save->p);

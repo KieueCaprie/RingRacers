@@ -4639,10 +4639,10 @@ static void Command_ListWADS_f(void)
 		nameonly(tempname = va("%s", wadfiles[i]->filename));
 		if (!i)
 			CONS_Printf("\x82 IWAD\x80: %s\n", tempname);
-		else if (i <= mainwads)
+		else if (i < mainwads)
 			CONS_Printf("\x82 * %.2d\x80: %s\n", i, tempname);
 		else if (!wadfiles[i]->important)
-			CONS_Printf("\x86 %c %.2d: %s\n", ((i <= mainwads + musicwads) ? '*' : ' '), i, tempname);
+			CONS_Printf("\x86 %c %.2d: %s\n", ((i < mainwads + musicwads) ? '*' : ' '), i, tempname);
 		else
 			CONS_Printf("   %.2d: %s\n", i, tempname);
 	}
@@ -6876,6 +6876,7 @@ static void Command_Staffsync(void)
 		demostarttime = I_GetTime();
 
 		staffbrief = mapheader->ghostBrief[staffsync_ghost];
+
 		G_DoPlayDemoEx("", (staffbrief->wad << 16) | staffbrief->lump);
 
 		staffsync_ghost++;
@@ -6919,6 +6920,28 @@ static void Command_Staffsync(void)
 				case SYNC_RNG:
 					CONS_Printf("(RNG class %d)", result->extra);
 					break;
+			}
+
+			CONS_Printf("\n");
+
+			CONS_Printf("   %d syncs (%d error)\n", result->numerror, result->totalerror/FRACUNIT);
+
+			CONS_Printf("   presync: ");
+
+			for (UINT32 j = 0; j < PRNUMSYNCED; j++)
+			{
+				if (result->rngerror_presync[j] > 0)
+					CONS_Printf("%s %d  ", rng_class_names[j], result->rngerror_presync[j]);
+			}
+
+			CONS_Printf("\n");
+
+			CONS_Printf("   postsync: ");
+
+			for (UINT32 j = 0; j < PRNUMSYNCED; j++)
+			{
+				if (result->rngerror_postsync[j] > 0)
+					CONS_Printf("%s %d  ", rng_class_names[j], result->rngerror_postsync[j]);
 			}
 
 			CONS_Printf("\n");

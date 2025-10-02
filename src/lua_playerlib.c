@@ -269,6 +269,8 @@ static int player_get(lua_State *L)
 		lua_pushboolean(L, plr->transfer);
 	else if (fastcmp(field,"markedfordeath"))
 		lua_pushboolean(L, plr->markedfordeath);
+	else if (fastcmp(field,"mfdfinish"))
+		lua_pushboolean(L, plr->mfdfinish);
 	else if (fastcmp(field,"incontrol"))
 		lua_pushboolean(L, plr->incontrol);
 	else if (fastcmp(field,"progressivethrust"))
@@ -347,6 +349,8 @@ static int player_get(lua_State *L)
 		lua_pushinteger(L, plr->spindashspeed);
 	else if (fastcmp(field,"spindashboost"))
 		lua_pushinteger(L, plr->spindashboost);
+	else if (fastcmp(field,"ringboostinprogress"))
+		lua_pushinteger(L, plr->ringboostinprogress);
 	else if (fastcmp(field,"fastfall"))
 		lua_pushfixed(L, plr->fastfall);
 	else if (fastcmp(field,"fastfallbase"))
@@ -375,6 +379,8 @@ static int player_get(lua_State *L)
 		lua_pushinteger(L, plr->tripwirePass);
 	else if (fastcmp(field,"fakeboost"))
 		lua_pushinteger(L, plr->fakeBoost);
+	else if (fastcmp(field,"subsonicleniency"))
+		lua_pushinteger(L, plr->subsonicleniency);
 	else if (fastcmp(field,"tripwireleniency"))
 		lua_pushinteger(L, plr->tripwireLeniency);
 	else if (fastcmp(field,"tripwireairleniency"))
@@ -405,8 +411,6 @@ static int player_get(lua_State *L)
 		lua_pushinteger(L, plr->overdriveready);
 	else if (fastcmp(field,"overdrivelenient"))
 		lua_pushinteger(L, plr->overdrivelenient);
-	else if (fastcmp(field,"speedpunt"))
-		lua_pushinteger(L, plr->speedpunt);
 	else if (fastcmp(field,"trickcharge"))
 		lua_pushinteger(L, plr->trickcharge);
 	else if (fastcmp(field,"infinitether"))
@@ -948,6 +952,8 @@ static int player_set(lua_State *L)
 		plr->transfer = luaL_checkboolean(L, 3);
 	else if (fastcmp(field,"markedfordeath"))
 		plr->markedfordeath = luaL_checkboolean(L, 3);
+	else if (fastcmp(field,"mfdfinish"))
+		plr->mfdfinish = luaL_checkboolean(L, 3);
 	else if (fastcmp(field,"dotrickfx"))
 		plr->dotrickfx = luaL_checkboolean(L, 3);
 	else if (fastcmp(field,"stingfx"))
@@ -1012,6 +1018,8 @@ static int player_set(lua_State *L)
 		plr->spindashspeed = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"spindashboost"))
 		plr->spindashboost = luaL_checkinteger(L, 3);
+	else if (fastcmp(field,"ringboostinprogress"))
+		plr->ringboostinprogress = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"fastfall"))
 		plr->fastfall = luaL_checkfixed(L, 3);
 	else if (fastcmp(field,"fastfallbase"))
@@ -1040,6 +1048,8 @@ static int player_set(lua_State *L)
 		plr->tripwirePass = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"fakeboost"))
 		plr->fakeBoost = luaL_checkinteger(L, 3);
+	else if (fastcmp(field,"subsonicleniency"))
+		plr->subsonicleniency = luaL_checkinteger(L, 3);	
 	else if (fastcmp(field,"tripwireleniency"))
 		plr->tripwireLeniency = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"tripwireairleniency"))
@@ -1070,8 +1080,6 @@ static int player_set(lua_State *L)
 		plr->overdriveready = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"overdrivelenient"))
 		plr->overdrivelenient = luaL_checkinteger(L, 3);
-	else if (fastcmp(field,"speedpunt"))
-		plr->speedpunt = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"trickcharge"))
 		plr->trickcharge = luaL_checkinteger(L, 3);
 	else if (fastcmp(field,"infinitether"))

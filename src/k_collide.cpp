@@ -1034,10 +1034,6 @@ boolean K_InstaWhipCollide(mobj_t *shield, mobj_t *victim)
 			}
 
 			// if you're here, you're getting hit
-			// Damage is a bit hacky, we want only a small loss-of-control
-			// while still behaving as if it's a "real" hit.
-			P_PlayRinglossSound(victim);
-			P_PlayerRingBurst(victimPlayer, 5);
 			P_DamageMobj(victim, shield, attacker, 1, DMG_WHUMBLE);
 
 			K_DropPowerUps(victimPlayer);
@@ -1293,8 +1289,15 @@ boolean K_PvPTouchDamage(mobj_t *t1, mobj_t *t2)
 
 	auto doStumble = [](mobj_t *t1, mobj_t *t2)
 	{
-		K_StumblePlayer(t2->player);
-		K_SpawnAmps(t1->player, K_PvPAmpReward(20, t1->player, t2->player), t2);
+		if (gametyperules & GTR_BUMPERS)
+		{
+			K_StumblePlayer(t2->player);
+			K_SpawnAmps(t1->player, K_PvPAmpReward(20, t1->player, t2->player), t2);
+		}
+		else
+		{
+			P_DamageMobj(t2, t1, t1, 1, DMG_WHUMBLE);
+		}
 	};
 
 	if (forEither(shouldStumble, doStumble))
@@ -1325,7 +1328,7 @@ boolean K_PvPTouchDamage(mobj_t *t1, mobj_t *t2)
 
 		bool stung = false;
 
-		if (RINGTOTAL(t2->player) <= 0 && t2->health == 1 && !(t2->player->pflags2 & PF2_UNSTINGABLE))
+		if (RINGTOTAL(t2->player) <= 0 && t2->player->ringboostinprogress == 0 && t2->health == 1 && !(t2->player->pflags2 & PF2_UNSTINGABLE))
 		{
 			P_DamageMobj(t2, t1, t1, 1, DMG_STING|DMG_WOMBO);
 			// CONS_Printf("T2 stung\n");

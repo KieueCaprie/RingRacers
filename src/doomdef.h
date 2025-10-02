@@ -457,7 +457,7 @@ enum {
 
 
 */
-void I_Error(const char *error, ...) FUNCIERROR;
+FUNCIERROR void ATTRNORETURN I_Error(const char *error, ...);
 
 /**	\brief	write a message to stderr (use before I_Quit) for when you need to quit with a msg, but need
  the return code 0 of I_Quit();
@@ -757,8 +757,8 @@ extern int
 #define EXP_STABLERATE 3*FRACUNIT/10 // how low is your placement before losing XP? 4*FRACUNIT/10 = top 40% of race will gain
 #define EXP_POWER 3*FRACUNIT/100 // adjust to change overall xp volatility
 #define EXP_MIN 25 // The min value target
-#define EXP_TARGET 120 // Used for grading ...
-#define EXP_MAX 120 // The max value displayed by the hud and in the tally screen and GP results screen
+#define EXP_TARGET 150 // Used for grading ...
+#define EXP_MAX 150 // The max value displayed by the hud and in the tally screen and GP results screen
 
 #ifdef __cplusplus
 } // extern "C"

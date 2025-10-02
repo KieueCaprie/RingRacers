@@ -1964,7 +1964,7 @@ static void K_HandleLapIncrement(player_t *player)
 		if (!G_TimeAttackStart() && leveltime < starttime && !(gametyperules & GTR_ROLLINGSTART))
 		{
 			// freeze 'em until fault penalty is over
-			player->mo->hitlag = starttime - leveltime + TICRATE;
+			player->mo->hitlag = starttime - leveltime + 2*TICRATE;
 			P_ResetPlayer(player);
 			player->pflags |= PF_VOID;
 			player->mo->renderflags |= RF_DONTDRAW;
@@ -2020,7 +2020,7 @@ static void K_HandleLapIncrement(player_t *player)
 			}
 
 			// finished race exit setup
-			if (player->laps > numlaps && !K_InRaceDuel())
+			if (player->laps > numlaps)
 			{
 				pflags_t applyflags = 0;
 				if (specialstageinfo.valid == true)
@@ -5421,11 +5421,22 @@ static void P_EvaluateDamageType(player_t *player, sector_t *sector, boolean isT
 			P_DamageMobj(player->mo, NULL, NULL, 1, DMG_INSTAKILL);
 			break;
 		case SD_STUMBLE:
-			if (isTouching)
+ 			if (isTouching && G_CompatLevel(0x0010))
 			{
 				player->pflags2 |= PF2_ALWAYSDAMAGED;
 				P_DamageMobj(player->mo, NULL, NULL, 1, DMG_STUMBLE);
 				player->pflags2 &= ~PF2_ALWAYSDAMAGED;
+
+			}
+			else
+			{
+				if (isTouching && player->mo->hitlag == 0 &&
+					(player->mo->momz == 0 || (player->mo->momz > 0) != (P_MobjFlip(player->mo) > 0)))
+				{
+					player->pflags2 |= PF2_ALWAYSDAMAGED;
+					P_DamageMobj(player->mo, NULL, NULL, 1, DMG_STUMBLE);
+					player->pflags2 &= ~PF2_ALWAYSDAMAGED;
+				}
 			}
 
 			break;

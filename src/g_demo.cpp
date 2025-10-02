@@ -303,18 +303,39 @@ boolean G_ConsiderEndingDemoRead(void)
 }
 
 // Demo failed sync during a sync test! Log the failure to be reported later.
-static void G_FailStaffSync(staffsync_reason_t reason, UINT32 extra)
+static boolean G_FailStaffSync(staffsync_reason_t reason, UINT32 extra)
 {
+	if (demo.attract != DEMO_ATTRACT_OFF) // Don't shout about RNG desyncs in titledemos
+		return false;
+
 	if (!staffsync)
-		return;
+		return true;
 
 	if (staffsync_results[staffsync_failed].reason != 0)
-		return;
+		return false;
+
+	if (reason == SYNC_RNG)
+	{
+		switch (extra)
+		{
+			case PR_ITEM_DEBRIS:
+			case PR_RANDOMAUDIENCE:
+			case PR_VOICES:
+			case PR_DECORATION:
+			case PR_RANDOMANIM:
+				CONS_Printf("[!] Ignored desync from RNG class %d\n", extra);
+				return false;
+			default:
+				break;
+		}
+	}
 
 	staffsync_results[staffsync_failed].map = gamemap;
 	memcpy(&staffsync_results[staffsync_failed].name, player_names[consoleplayer], sizeof(player_names[consoleplayer]));
 	staffsync_results[staffsync_failed].reason = reason;
 	staffsync_results[staffsync_failed].extra = extra;
+
+	return true;
 }
 
 void G_ReadDemoExtraData(void)
@@ -484,13 +505,26 @@ void G_ReadDemoExtraData(void)
 					{
 						P_SetRandSeed(static_cast<pr_class_t>(i), rng);
 
-						if (demosynced)
+						if (staffsync)
 						{
-							CONS_Alert(CONS_WARNING, "Demo playback has desynced (RNG class %d)!\n", i);
-							G_FailStaffSync(SYNC_RNG, i);
+							if (demosynced)
+								staffsync_results[staffsync_failed].rngerror_presync[i]++;
+							else
+								staffsync_results[staffsync_failed].rngerror_postsync[i]++;
 						}
 
-						storesynced = false;
+						if (demosynced)
+						{
+							if (G_FailStaffSync(SYNC_RNG, i))
+							{
+								CONS_Alert(CONS_WARNING, "Demo playback has desynced (RNG class %d - %s)!\n", i, rng_class_names[i]);
+								storesynced = false;
+							}
+						}
+						else
+						{
+							storesynced = false;
+						}
 					}
 				}
 				demosynced = storesynced;
@@ -1241,6 +1275,12 @@ void G_ConsGhostTic(INT32 playernum)
 					G_FailStaffSync(SYNC_POSITION, 0);
 				}
 				demosynced = false;
+
+				if (staffsync)
+				{
+					staffsync_results[staffsync_failed].numerror++;
+					staffsync_results[staffsync_failed].totalerror += abs(testmo->x - oldghost[playernum].x) + abs(testmo->y - oldghost[playernum].y) + abs(testmo->z - oldghost[playernum].z);
+				}
 
 				P_UnsetThingPosition(testmo);
 				testmo->x = oldghost[playernum].x;
@@ -3269,6 +3309,8 @@ void G_DoPlayDemoEx(const char *defdemoname, lumpnum_t deflumpnum)
 
 	// net var data
 	demobuf.p += CV_LoadDemoVars(demobuf.p);
+	// Dumb hack for team play desyncs - https://gitlab.com/kart-krew-dev/ring-racers/-/issues/210
+	g_teamplay = cv_teamplay.value ? 1 : 0;
 
 	memset(&grandprixinfo, 0, sizeof grandprixinfo);
 	if ((demoflags & DF_GRANDPRIX))

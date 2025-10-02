@@ -42,7 +42,7 @@ Make sure this matches the actual number of states
 #define INSTAWHIP_HOLD_DELAY (TICRATE*2)
 // MUST be longer or equal to INSTAWHIP_CHARGETIME.
 #define INSTAWHIP_TETHERBLOCK (TICRATE*4)
-#define PUNISHWINDOW (10*TICRATE/10)
+#define PUNISHWINDOW (G_CompatLevel(0x0010) ? 7*TICRATE/10 : 10*TICRATE/10)
 
 #define BAIL_MAXCHARGE (84) // tics to bail when in painstate nad in air, on ground is half, if you touch this, also update Obj_BailChargeThink synced animation logic
 #define BAIL_DROP (FRACUNIT) // How many rings it has to drop before stun starts
@@ -76,7 +76,7 @@ Make sure this matches the actual number of states
 
 #define EARLY_ITEM_FLICKER (NUMTRANSMAPS)
 
-#define TRIPWIRE_OK_SOUND (sfx_s3k40)
+#define TRIPWIRE_OK_SOUND (sfx_sonbo2)
 #define TRIPWIRE_NG_SOUND (sfx_gshaf)
 
 // 2023-08-26 +ang20 to Sal's OG values to make them friendlier - Tyron
@@ -105,7 +105,7 @@ Make sure this matches the actual number of states
 #define MAXTOPACCEL (12*FRACUNIT)
 #define TOPACCELREGEN (FRACUNIT/16)
 
-#define BUBBLESCAM (4)
+#define BUBBLESCAM (4*FRACUNIT)
 
 // Handling boosts and sliptide conditions got weird.
 // You must be under a handling boost of at least SLIPTIDEHANDLING to sliptide.
@@ -132,11 +132,10 @@ boolean K_DuelItemAlwaysSpawns(mapthing_t *mt);
 boolean K_InRaceDuel(void);
 player_t *K_DuelOpponent(player_t *player);
 
+fixed_t K_FinalCheckpointPower(void);
 fixed_t K_EffectiveGradingFactor(const player_t *player);
 #define MINGRADINGFACTOR (FRACUNIT/2)
 #define MINFRANTICFACTOR (8*FRACUNIT/10)
-#define GRADINGFACTORSOFTCAP (FRACUNIT)
-#define GRADINGFACTORCAPSTRENGTH (3*FRACUNIT)
 
 void K_TimerReset(void);
 void K_TimerInit(void);
@@ -145,7 +144,7 @@ UINT32 K_GetPlayerDontDrawFlag(player_t *player);
 void K_ReduceVFXForEveryone(mobj_t *mo);
 
 boolean K_IsPlayerLosing(player_t *player);
-fixed_t K_PlayerScamPercentage(const player_t *player, UINT8 mult);
+fixed_t K_PlayerScamPercentage(const player_t *player, fixed_t mult);
 fixed_t K_GetKartGameSpeedScalar(SINT8 value);
 
 INT32 K_GetShieldFromItem(INT32 item);
@@ -347,7 +346,7 @@ boolean K_ThunderDome(void);
 
 boolean K_PlayerCanUseItem(player_t *player);
 
-fixed_t K_GetGradingFactorAdjustment(player_t *player);
+fixed_t K_GetGradingFactorAdjustment(player_t *player, UINT32 gradingpoint);
 fixed_t K_GetGradingFactorMinMax(player_t *player, boolean max);
 UINT16 K_GetEXP(player_t *player);
 

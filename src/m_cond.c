@@ -1797,7 +1797,7 @@ boolean M_CheckCondition(condition_t *cn, player_t *player)
 		case UCRP_PREFIX_BONUSROUND:
 			return ((grandprixinfo.gp == true) && (grandprixinfo.eventmode == GPEVENT_BONUS));
 		case UCRP_PREFIX_TIMEATTACK:
-			return (modeattacking != ATTACKING_NONE);
+			return (modeattacking != ATTACKING_NONE && !(skins[player->skin]->flags & SF_HIVOLT));
 		case UCRP_PREFIX_PRISONBREAK:
 			return ((gametyperules & GTR_PRISONS) && battleprisons);
 		case UCRP_PREFIX_SEALEDSTAR:
@@ -1843,8 +1843,7 @@ boolean M_CheckCondition(condition_t *cn, player_t *player)
 			if (cn->extrainfo2 != 0)
 				return (K_PodiumGrade() >= cn->extrainfo1);
 			if (cn->extrainfo1 != 0)
-				return (player->position != 0
-					&& player->position <= cn->extrainfo1);
+				return K_GetPodiumPosition(player) <= cn->extrainfo1;
 			return true;
 		case UCRP_PODIUMEMERALD:
 		case UCRP_PODIUMPRIZE:

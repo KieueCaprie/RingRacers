@@ -661,7 +661,7 @@ typedef enum
 	MA_NO
 } manswer_e;
 
-#define MAXMENUMESSAGE 256
+#define MAXMENUMESSAGE 448
 #define MENUMESSAGECLOSE 2
 extern struct menumessage_s
 {
@@ -769,6 +769,7 @@ void M_StartControlPanel(void);
 void M_ValidateRestoreMenu(void);
 menu_t *M_SpecificMenuRestore(menu_t *torestore);
 void M_ClearMenus(boolean callexitmenufunc);
+void M_ClearMenusNoTitle(boolean callexitmenufunc);
 void M_SelectableClearMenus(INT32 choice);
 void M_SetupNextMenu(menu_t *menudef, boolean nofade);
 void M_GoBack(INT32 choice);

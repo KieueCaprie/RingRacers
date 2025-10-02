@@ -383,7 +383,7 @@ typedef enum
 #define TUMBLEBOUNCES 3
 #define TUMBLEGRAVITY (4*FRACUNIT)
 
-#define TRIPWIRETIME (15)
+#define TRIPWIRETIME (50)
 
 #define BALLHOGINCREMENT (7)
 
@@ -801,6 +801,8 @@ struct player_t
 	fixed_t spindashspeed;	// Spindash release speed
 	UINT8 spindashboost;	// Spindash release boost timer
 
+	UINT8 ringboostinprogress; // Ring overhead, don't sting!
+
 	fixed_t fastfall;		// Fast fall momentum
 	fixed_t fastfallBase;	// Fast fall base speed multiplier
 
@@ -821,6 +823,7 @@ struct player_t
 	UINT16 tripwireLeniency;	// When reaching a state that lets you go thru tripwire, you get an extra second leniency after it ends to still go through it.
 	UINT8 tripwireAirLeniency;	// Timer that elongates tripwire leniency when in midair.
 	UINT8 fakeBoost;	// Some items need to grant tripwire pass briefly, even when their effect is thrust/instathrust. This is a fake boost type to control that.
+	UINT16 subsonicleniency; // Keep the subsonic visual for just a little bit when your sonic boom is visible
 
 	itemroulette_t itemRoulette;	// Item roulette data
 
@@ -1071,8 +1074,6 @@ struct player_t
 	UINT16 wavedashboost; // The actual boost granted from wavedash.
 	fixed_t wavedashpower; // Is this a bullshit "tap" wavedash? Weaken lower-charge wavedashes while keeping long sliptides fully rewarding.
 
-	UINT16 speedpunt;
-
 	UINT16 trickcharge; // Landed normally from a trick panel? Get the benefits package!
 
 	UINT16 infinitether; // Generic infinitether time, used for infinitether leniency.
@@ -1128,6 +1129,8 @@ struct player_t
 	boolean dotrickfx;
 	boolean stingfx;
 	UINT8 bumperinflate;
+	
+	boolean mfdfinish; // Did you cross the finish line while just about to explode?
 
 	UINT8 ringboxdelay; // Delay until Ring Box auto-activates
 	UINT8 ringboxaward; // Where did we stop?
