@@ -3303,7 +3303,7 @@ void G_BeginLevelExit(void)
 	
 	if (grandprixinfo.gamespeed == KARTSPEED_EASY)
 	{
-		continue;
+		g_difficulty = 0;
 	}
 	else
 	{
