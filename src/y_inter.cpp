@@ -2400,7 +2400,7 @@ static UINT32 Y_EstimatePodiumScore(player_t *const player, UINT8 numPlaying)
 	UINT8 pos = Y_PlayersBestPossiblePosition(player);
 	UINT32 ourScore = player->score;
 
-	ourScore += K_CalculateGPRankPoints(player->exp, pos, numPlaying);
+	ourScore += K_CalculateGPRankPoints(player->pos, numPlaying);
 
 	return ourScore;
 }

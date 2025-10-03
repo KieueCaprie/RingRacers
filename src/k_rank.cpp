@@ -323,7 +323,7 @@ void gpRank_t::Init(void)
 	// (Should this account for all coop players?)
 	for (i = 0; i < numHumans; i++)
 	{
-		totalPoints += grandprixinfo.cup->numlevels * K_CalculateGPRankPoints(EXP_MAX, i+1, totalPlayers);
+		totalPoints += grandprixinfo.cup->numlevels * K_CalculateGPRankPoints(i+1, totalPlayers);
 	}
 
 	totalRings = grandprixinfo.cup->numlevels * numHumans * 20;

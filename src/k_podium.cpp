@@ -139,7 +139,7 @@ void podiumData_s::Init(void)
 		constexpr INT32 numRaces = 5;
 		for (INT32 i = 0; i < rank.numPlayers; i++)
 		{
-			rank.totalPoints += numRaces * K_CalculateGPRankPoints(EXP_MAX, i+1, rank.totalPlayers);
+			rank.totalPoints += numRaces * K_CalculateGPRankPoints(i+1, rank.totalPlayers);
 		}
 		rank.totalRings = numRaces * rank.numPlayers * 20;
 
@@ -722,7 +722,7 @@ void podiumData_s::Draw(void)
 								drawer_gametype
 									.xy(0, 1)
 									.colorize(static_cast<skincolornum_t>(SKINCOLOR_MUSTARD))
-									.patch("K_SPTEXP");
+									.patch("K_SPTLAP");
 
 								// Colorize the crystal, just like we do for hud
 								skincolornum_t overlaycolor = SKINCOLOR_MUSTARD;
@@ -889,7 +889,7 @@ void podiumData_s::Draw(void)
 
 		drawer_totals_right
 			.colorize(static_cast<skincolornum_t>(SKINCOLOR_MUSTARD))
-			.patch("K_STEXP");
+			.patch("RANKLAPS");
 
 		// Colorize the crystal for the totals, just like we do for in race hud
 		fixed_t extraexpfactor = (EXP_MAX*FRACUNIT) / EXP_TARGET;
