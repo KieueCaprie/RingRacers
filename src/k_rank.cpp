@@ -664,11 +664,17 @@ fixed_t K_CalculateGPPercent(gpRank_t *rankData)
 	}
 
 	rankData->scoreContinues -= (rankData->continuesUsed - RANK_CONTINUE_PENALTY_START) * continuesPenalty;
+	
+	if (rankData->scoreContinues >= 1)
+	{
+		// Award no bonus points for extra continues, keeping in line with 2.4 scoring changes.
+		rankData->scoreContinues = 0;
+	}
 
 	rankData->scoreTotal =
 		rankData->scorePosition +
-		// rankData->scoreGPPoints +
-		rankData->scoreExp +
+		rankData->scoreGPPoints +
+		// rankData->scoreExp +
 		rankData->scorePrisons +
 		rankData->scoreRings +
 		rankData->scoreContinues;
