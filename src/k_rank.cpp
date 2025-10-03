@@ -673,8 +673,8 @@ fixed_t K_CalculateGPPercent(gpRank_t *rankData)
 
 	rankData->scoreTotal =
 		rankData->scorePosition +
-		rankData->scoreGPPoints +
-		// rankData->scoreExp +
+		// rankData->scoreGPPoints +
+		rankData->scoreExp +
 		rankData->scorePrisons +
 		rankData->scoreRings +
 		rankData->scoreContinues;
