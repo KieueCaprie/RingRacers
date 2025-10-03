@@ -3317,7 +3317,8 @@ void G_BeginLevelExit(void)
 		}
 	}
 
-	if (!G_GametypeAllowsRetrying() || skipstats != 0 || (grandprixinfo.gp && g_difficulty <= 1))
+	// Does the gamemode not allow for retrying? Is skipstats enabled? Are we in a GP that isn't Master Mode? Are we not in a special stage?
+	if (!G_GametypeAllowsRetrying() || skipstats != 0 || (grandprixinfo.gp && g_difficulty <= 1 && grandprixinfo.eventmode != GPEVENT_SPECIAL))
 	{
 		g_exit.losing = false; // never force a retry
 	}
