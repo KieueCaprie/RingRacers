@@ -3299,7 +3299,7 @@ void G_BeginLevelExit(void)
 {
 	g_exit.losing = true;
 	g_exit.retry = false;
-	g_difficulty = 0;
+	int g_difficulty = 0;
 
 	if (!G_GametypeAllowsRetrying() || skipstats != 0 || (grandprixinfo.gp && grandprixinfo.gamespeed == KARTSPEED_EASY))
 	{
@@ -3341,7 +3341,7 @@ void G_BeginLevelExit(void)
 				}
 				else
 				{
-					if (!grandprixinfo.masterbots == true)
+					if (grandprixinfo.masterbots == false)
 					{
 						g_difficulty = 1;
 						continue;
