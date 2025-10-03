@@ -3331,9 +3331,31 @@ void G_BeginLevelExit(void)
 		{
 			if (playeringame[i] && !players[i].spectator && !players[i].bot)
 			{
+			// 0 = EASY - 1 = NORMAL and HARD - 2 = MASTER
+				g_difficulty = 0;
+				
+				if (grandprixinfo.gamespeed == KARTSPEED_EASY)
+				{
+					continue;
+				}
+				else
+				{
+					if (!grandprixinfo.masterbots = true)
+					{
+						g_difficulty = 1;
+						continue;
+					}
+					else
+					{
+						g_difficulty = 2;
+					}
+				}
+				
+					
+				
 				if (G_GametypeUsesLives() && players[i].lives <= 0)
 					continue;
-
+				if (G_GametypeUsesLives() && players[i].lives >= 1 && g_difficulty == 2)
 				g_exit.retry = true;
 				break;
 			}
