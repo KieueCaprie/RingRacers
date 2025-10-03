@@ -188,17 +188,20 @@ void Dummygpdifficulty_OnChange(void)
 	switch (cv_dummygpdifficulty.value)
 	{
 		case KARTSPEED_EASY:
-			tooltip = "Low-stakes racing at \x83Gear 1""\x80"". \x83No placement requirements\x80.";
+			tooltip = "Low-stakes racing at \x83Gear 1""\x80"". \x83Learn Ring Racers at a chilled pace!";
 			break;
 		case KARTSPEED_NORMAL:
-			tooltip = "Aim for the prize at\x82 Gear 2\x80. Place \x82""within the top half\x80 to advance!";
+			tooltip = "Aim for the prize at\x82 Gear 2\x80. \x83Learn trickier Ring Racers techniques here!";
 			break;
 		case KARTSPEED_HARD:
 			tooltip = "Challenge fierce competition at\x87 Gear 3\x80. For\x87 thrill-seekers!";
 			break;
 		case KARTGP_MASTER:
-			tooltip = "Let's go crazy! Take on brutal CPUs at\x87 Gear 3\x80: for\x85 lunatics only!";
+			tooltip = "Prepared to suffer? Brutal CPUs await at \x87 Gear 3\x80 where \x85YOUR placement matters!";
 			break;
+		// case KARTGP_GRANDMASTER:
+			// tooltip = "Not Even Remotely Fair. Suffer rivals at every turn on \x87Gear 4\x80! \x85PREPARE TO LOSE";
+			// break;
 	}
 
 	PLAY_RaceDifficulty[drace_gpdifficulty].tooltip = tooltip;
