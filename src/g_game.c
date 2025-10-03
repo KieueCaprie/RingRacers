@@ -3357,8 +3357,10 @@ void G_BeginLevelExit(void)
 				if (G_GametypeUsesLives() && players[i].lives <= 0)
 					continue;
 				if (G_GametypeUsesLives() && players[i].lives >= 1 && g_difficulty == 2)
+				{
 					g_exit.retry = true;
 					break;
+				}
 			}
 		}
 	}
