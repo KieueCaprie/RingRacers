@@ -3300,8 +3300,24 @@ void G_BeginLevelExit(void)
 	g_exit.losing = true;
 	g_exit.retry = false;
 	int g_difficulty = 0;
+	
+	if (grandprixinfo.gamespeed == KARTSPEED_EASY)
+	{
+		continue;
+	}
+	else
+	{
+		if (grandprixinfo.masterbots == false)
+		{
+			g_difficulty = 1;
+		}
+		else
+		{
+			g_difficulty = 2;
+		}
+	}
 
-	if (!G_GametypeAllowsRetrying() || skipstats != 0 || (grandprixinfo.gp && grandprixinfo.gamespeed == KARTSPEED_EASY))
+	if (!G_GametypeAllowsRetrying() || skipstats != 0 || (grandprixinfo.gp && g_difficulty <= 1))
 	{
 		g_exit.losing = false; // never force a retry
 	}
@@ -3331,36 +3347,12 @@ void G_BeginLevelExit(void)
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
 			if (playeringame[i] && !players[i].spectator && !players[i].bot)
-			{
-			// 0 = EASY - 1 = NORMAL and HARD - 2 = MASTER
-				
-				
-				if (grandprixinfo.gamespeed == KARTSPEED_EASY)
-				{
-					continue;
-				}
-				else
-				{
-					if (grandprixinfo.masterbots == false)
-					{
-						g_difficulty = 1;
-						g_exit.losing = false;
-					}
-					else
-					{
-						g_difficulty = 2;
-					}
-				}
-				
-					
-				
+			{	
 				if (G_GametypeUsesLives() && players[i].lives <= 0)
 					continue;
-				if (G_GametypeUsesLives() && players[i].lives >= 1 && g_difficulty == 2)
-				{
-					g_exit.retry = true;
-					break;
-				}
+
+				g_exit.retry = true;
+				break;
 			}
 		}
 	}
