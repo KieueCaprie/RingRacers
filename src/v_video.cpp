@@ -3521,6 +3521,13 @@ void V_DrawCenteredMenuString(INT32 x, INT32 y, INT32 option, const char *string
 	V_DrawMenuString(x, y, option, string);
 }
 
+// For BETATEST text only
+void V_DrawCenteredBetaString(INT32 x, INT32 y, INT32 option, const char *string)
+{
+	x -= V_MenuStringWidth(string, option)/2;
+	V_DrawMenuString(x, y, option, string);
+}
+
 void V_DrawRightAlignedMenuString(INT32 x, INT32 y, INT32 option, const char *string)
 {
 	x -= V_MenuStringWidth(string, option);

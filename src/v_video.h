@@ -393,6 +393,7 @@ void V_DrawRightAlignedTimerString(INT32 x, INT32 y, INT32 option, const char *s
 	V__IntegerStringWidth ( FRACUNIT,option,MENU_FONT,string )
 
 void V_DrawCenteredMenuString(INT32 x, INT32 y, INT32 option, const char *string);
+void V_DrawCenteredBetaString(INT32 x, INT32 y, INT32 option, const char *string);
 void V_DrawRightAlignedMenuString(INT32 x, INT32 y, INT32 option, const char *string);
 
 #define V_DrawGamemodeString( x,y,option,cm,string ) \
