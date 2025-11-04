@@ -661,8 +661,31 @@ fixed_t K_CalculateGPPercent(gpRank_t *rankData)
 	{
 		rankData->scoreRings += (rankData->rings * RANK_WEIGHT_RINGS) / rankData->totalRings;
 	}
+	
+	// If we're playing on Vicious or higher, lower the amount of free continues.
 
-	rankData->scoreContinues -= (rankData->continuesUsed - RANK_CONTINUE_PENALTY_START) * continuesPenalty;
+	
+	if (grandprixinfo.gamespeed == KARTSPEED_HARD)
+	{
+		const INT32 freeContinues = RANK_CONTINUE_PENALTY_START - 1;
+		rankData->scoreContinues -= (rankData->continuesUsed - freeContinues) * continuesPenalty;
+	}
+	else if (grandprixinfo.masterbots || grandprixinfo.gamespeed == KARTSPEED_EASY)
+	{
+		// Playing on Master is supposed to be a challenge so there are no free continues on that difficulty.
+		// Gotta earn that A-Rank the hard way.
+		// You progress regardless on Relaxed difficulty, so no point in having "free continues".
+		const INT32 freeContinues = RANK_CONTINUE_PENALTY_START - 2;
+		rankData->scoreContinues -= (rankData->continuesUsed - freeContinues) * continuesPenalty;
+	}
+	
+	if (rankData->scoreContinues >= 1)
+	{
+		// Award no bonus points for extra continues, keeping in line with 2.4 scoring changes.
+		rankData->scoreContinues = 0;
+	}
+
+	// rankData->scoreContinues -= (rankData->continuesUsed - RANK_CONTINUE_PENALTY_START) * continuesPenalty;
 
 	rankData->scoreTotal =
 		rankData->scorePosition +

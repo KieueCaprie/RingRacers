@@ -97,7 +97,7 @@ extern "C" {
 #define RANK_WEIGHT_RINGS (50)
 
 #define RANK_CONTINUE_PENALTY_DIV (10) // 10% of the total grade
-#define RANK_CONTINUE_PENALTY_START (0)
+#define RANK_CONTINUE_PENALTY_START (2)
 
 /*--------------------------------------------------
 	void K_InitGrandPrixRank(gpRank_t *rankData);
